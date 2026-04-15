@@ -1,15 +1,26 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getMyRestaurant, addMenuItem, updateMenuItem, deleteMenuItem, getRestaurantOrders, updateOrderStatus } from '../services/api';
-import { Plus, Trash2, Edit3, Package, DollarSign, Clock, ChefHat, X, Check, Eye } from 'lucide-react';
+import { getMyRestaurant, addMenuItem, updateMenuItem, deleteMenuItem, getRestaurantOrders, updateOrderStatus, getAvailableDeliveryBoys, assignDeliveryBoy } from '../services/api';
+import { Plus, Trash2, Edit3, Package, DollarSign, Clock, ChefHat, X, Check, Eye, Truck } from 'lucide-react';
 
 const statusFlow = ['placed', 'confirmed', 'preparing', 'ready'];
-const statusLabels = { placed: 'Placed', confirmed: 'Confirmed', preparing: 'Preparing', ready: 'Ready', picked_up: 'Picked Up', on_the_way: 'On Way', delivered: 'Delivered', cancelled: 'Cancelled' };
+const statusLabels = { 
+  placed: 'Placed', 
+  confirmed: 'Confirmed', 
+  preparing: 'Preparing', 
+  ready: 'Ready for Delivery', 
+  assigned: 'Delivery Assigned', 
+  picked_up: 'Picked Up', 
+  on_the_way: 'On the Way', 
+  delivered: 'Delivered', 
+  cancelled: 'Cancelled' 
+};
 const statusColors = { 
   placed: 'bg-orange-100 text-orange-700', 
   confirmed: 'bg-blue-100 text-blue-700', 
   preparing: 'bg-purple-100 text-purple-700', 
   ready: 'bg-emerald-100 text-emerald-700', 
+  assigned: 'bg-cyan-100 text-cyan-700',
   picked_up: 'bg-cyan-100 text-cyan-700', 
   on_the_way: 'bg-yellow-100 text-yellow-700', 
   delivered: 'bg-green-100 text-green-700', 
@@ -21,9 +32,12 @@ const RestaurantDashboard = () => {
   const [restaurant, setRestaurant] = useState(null);
   const [menuItems, setMenuItems] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [deliveryBoys, setDeliveryBoys] = useState([]);
   const [activeTab, setActiveTab] = useState('orders');
   const [loading, setLoading] = useState(true);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [showAssignDelivery, setShowAssignDelivery] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
   const [menuForm, setMenuForm] = useState({ name: '', description: '', price: '', category: '', isVeg: false });
   const [editingId, setEditingId] = useState(null);
 
@@ -59,6 +73,30 @@ const RestaurantDashboard = () => {
 
   const handleStatusUpdate = async (orderId, newStatus) => {
     try { await updateOrderStatus(orderId, newStatus); fetchData(); } catch (err) { alert('Failed'); }
+  };
+
+  const handleAssignDelivery = async (orderId, deliveryBoyId) => {
+    try {
+      await assignDeliveryBoy(orderId, deliveryBoyId);
+      setShowAssignDelivery(false);
+      setSelectedOrder(null);
+      fetchData();
+    } catch (err) {
+      alert('Failed to assign delivery boy');
+    }
+  };
+
+  const openAssignDelivery = async (order) => {
+    setSelectedOrder(order);
+    try {
+      const res = await getAvailableDeliveryBoys();
+      if (res.data.success) {
+        setDeliveryBoys(res.data.deliveryBoys);
+        setShowAssignDelivery(true);
+      }
+    } catch (err) {
+      alert('Failed to load delivery boys');
+    }
   };
 
   const getNextStatus = (current) => {
@@ -178,7 +216,12 @@ const RestaurantDashboard = () => {
                   </div>
                   
                   <div>
-                    {getNextStatus(order.status) ? (
+                    {order.status === 'ready' ? (
+                      <button onClick={() => openAssignDelivery(order)}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-600/20 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                        <Truck size={20} /> Assign Delivery Boy
+                      </button>
+                    ) : getNextStatus(order.status) ? (
                       <button onClick={() => handleStatusUpdate(order._id, getNextStatus(order.status))}
                         className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-orange-600/20 transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2">
                         Mark as {statusLabels[getNextStatus(order.status)]} <Check size={20} />
@@ -186,6 +229,12 @@ const RestaurantDashboard = () => {
                     ) : (
                       <div className="w-full bg-stone-100 text-stone-500 font-bold py-4 rounded-xl text-center border border-stone-200">
                         No further actions
+                      </div>
+                    )}
+                    {order.deliveryBoy && (
+                      <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                        <p className="text-sm font-bold text-blue-700">Delivery Boy</p>
+                        <p className="text-sm text-blue-600">{order.deliveryBoy.name}</p>
                       </div>
                     )}
                   </div>
@@ -246,6 +295,37 @@ const RestaurantDashboard = () => {
                       {editingId ? 'Update Item' : 'Add to Menu'}
                     </button>
                   </form>
+                </div>
+              </div>
+            )}
+
+            {/* Assign Delivery Modal */}
+            {showAssignDelivery && selectedOrder && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 backdrop-blur-sm px-4">
+                <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl relative animate-fade-in-up border border-stone-100">
+                  <button type="button" onClick={() => { setShowAssignDelivery(false); setSelectedOrder(null); }} className="absolute top-6 right-6 w-10 h-10 bg-stone-100 text-stone-500 hover:bg-stone-200 hover:text-stone-900 rounded-full flex items-center justify-center transition-colors">
+                    <X size={20} />
+                  </button>
+                  <h3 className="text-2xl font-black text-stone-900 mb-6">Assign Delivery Boy</h3>
+                  <p className="text-stone-600 mb-6">Order #{selectedOrder._id.slice(-6)} - {selectedOrder.user?.name}</p>
+                  
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {deliveryBoys.length === 0 ? (
+                      <p className="text-stone-500 text-center py-8">No available delivery boys</p>
+                    ) : deliveryBoys.map(boy => (
+                      <div key={boy._id} className="flex items-center justify-between p-4 bg-stone-50 border border-stone-200 rounded-xl hover:bg-stone-100 transition-colors">
+                        <div>
+                          <p className="font-bold text-stone-900">{boy.name}</p>
+                          <p className="text-sm text-stone-500">{boy.phone} • {boy.vehicleType}</p>
+                          <p className="text-sm text-stone-500">{boy.address?.city}, {boy.address?.state}</p>
+                        </div>
+                        <button onClick={() => handleAssignDelivery(selectedOrder._id, boy._id)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold transition-colors">
+                          Assign
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

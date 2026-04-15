@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getAvailableOrders, acceptDeliveryOrder, getMyDeliveries, updateDeliveryStatus, toggleAvailability } from '../services/api';
+import { getAvailableOrders, confirmOrderPickup, getMyDeliveries, updateDeliveryStatus, toggleAvailability } from '../services/api';
 import { Package, MapPin, Phone, CheckCircle, Truck, DollarSign, LocateFixed, Eye } from 'lucide-react';
 
 const statusColors = { 
@@ -8,12 +8,23 @@ const statusColors = {
   confirmed: 'bg-blue-100 text-blue-700', 
   preparing: 'bg-purple-100 text-purple-700', 
   ready: 'bg-emerald-100 text-emerald-700', 
+  assigned: 'bg-cyan-100 text-cyan-700',
   picked_up: 'bg-cyan-100 text-cyan-700', 
   on_the_way: 'bg-yellow-100 text-yellow-700', 
   delivered: 'bg-green-100 text-green-700', 
   cancelled: 'bg-red-100 text-red-700' 
 };
-const statusLabels = { placed: 'Placed', confirmed: 'Confirmed', preparing: 'Preparing', ready: 'Ready', picked_up: 'Picked Up', on_the_way: 'On Way', delivered: 'Delivered', cancelled: 'Cancelled' };
+const statusLabels = { 
+  placed: 'Placed', 
+  confirmed: 'Confirmed', 
+  preparing: 'Preparing', 
+  ready: 'Ready', 
+  assigned: 'Assigned', 
+  picked_up: 'Picked Up', 
+  on_the_way: 'On Way', 
+  delivered: 'Delivered', 
+  cancelled: 'Cancelled' 
+};
 
 const DeliveryDashboard = () => {
   const { user, setUser } = useAuth();
@@ -34,7 +45,7 @@ const DeliveryDashboard = () => {
   };
 
   const handleAccept = async (orderId) => {
-    try { await acceptDeliveryOrder(orderId); fetchData(); setActiveTab('active'); } catch (err) { alert(err.response?.data?.message || 'Failed'); }
+    try { await confirmOrderPickup(orderId); fetchData(); setActiveTab('active'); } catch (err) { alert(err.response?.data?.message || 'Failed'); }
   };
 
   const handleStatusUpdate = async (orderId, status) => {
@@ -120,7 +131,7 @@ const DeliveryDashboard = () => {
             {!user?.isAvailable && (
               <div className="bg-amber-50 border-2 border-amber-200 text-amber-800 p-6 rounded-3xl font-bold text-center flex flex-col items-center justify-center gap-2">
                 <span className="text-2xl">😴</span>
-                You are currently offline. Go online to accept new deliveries!
+                You are currently offline. Go online to receive assigned deliveries!
               </div>
             )}
             
@@ -153,7 +164,7 @@ const DeliveryDashboard = () => {
                   <button onClick={() => handleAccept(order._id)} disabled={!user?.isAvailable}
                     className="w-full sm:w-48 bg-orange-600 hover:bg-orange-700 disabled:bg-stone-300 disabled:cursor-not-allowed text-white font-bold py-5 rounded-2xl shadow-lg shadow-orange-600/20 transition-all flex flex-col items-center justify-center gap-1">
                     <LocateFixed size={24} />
-                    ACCEPT & ROUTE
+                    CONFIRM PICKUP
                   </button>
                 </div>
               </div>
@@ -170,7 +181,7 @@ const DeliveryDashboard = () => {
                   <Truck size={40} className="text-stone-400" />
                 </div>
                 <h3 className="text-2xl font-bold text-stone-900 mb-2">No active deliveries</h3>
-                <p className="text-stone-500 font-medium">Accept an order from the Incoming tab to begin.</p>
+                <p className="text-stone-500 font-medium">Assigned orders will appear here for pickup confirmation.</p>
               </div>
             ) : activeDeliveries.map(order => (
               <div key={order._id} className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-orange-100 relative overflow-hidden">

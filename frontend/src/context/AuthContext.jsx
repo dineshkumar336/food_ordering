@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { getMe } from '../services/api';
+import { getMe, registerUser, loginUser } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -31,9 +31,32 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = (token, userData) => {
-    localStorage.setItem('fo_token', token);
-    setUser(userData);
+  const register = async (userData) => {
+    try {
+      const { data } = await registerUser(userData);
+      if (data.success) {
+        localStorage.setItem('fo_token', data.token);
+        setUser(data.user);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const login = async (credentials) => {
+    try {
+      const { data } = await loginUser(credentials);
+      if (data.success) {
+        localStorage.setItem('fo_token', data.token);
+        setUser(data.user);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      throw error;
+    }
   };
 
   const logout = () => {
@@ -42,7 +65,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, setUser }}>
+    <AuthContext.Provider value={{ user, loading, register, login, logout, setUser }}>
       {children}
     </AuthContext.Provider>
   );

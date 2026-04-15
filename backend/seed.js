@@ -19,7 +19,7 @@ const connectDB = async () => {
 const seedData = async () => {
   try {
     // Clear existing data
-    await User.deleteMany({ role: 'restaurant' });
+    await User.deleteMany({ role: { $in: ['restaurant', 'delivery'] } });
     await Restaurant.deleteMany({});
     await MenuItem.deleteMany({});
 
@@ -68,6 +68,58 @@ const seedData = async () => {
 
     const createdOwners = await User.insertMany(restaurantOwners);
     console.log('Restaurant owners created');
+
+    // Create delivery boys
+    const deliveryBoys = [
+      {
+        name: 'John Delivery',
+        email: 'john@delivery.com',
+        password: await bcrypt.hash('password123', 10),
+        phone: '+1-555-0201',
+        role: 'delivery',
+        isAvailable: true,
+        vehicleType: 'bike',
+        address: {
+          street: '100 Delivery St',
+          city: 'New York',
+          state: 'NY',
+          zipCode: '10001'
+        }
+      },
+      {
+        name: 'Mike Rider',
+        email: 'mike@delivery.com',
+        password: await bcrypt.hash('password123', 10),
+        phone: '+1-555-0202',
+        role: 'delivery',
+        isAvailable: true,
+        vehicleType: 'scooter',
+        address: {
+          street: '200 Rider Ave',
+          city: 'Los Angeles',
+          state: 'CA',
+          zipCode: '90210'
+        }
+      },
+      {
+        name: 'Sarah Courier',
+        email: 'sarah@delivery.com',
+        password: await bcrypt.hash('password123', 10),
+        phone: '+1-555-0203',
+        role: 'delivery',
+        isAvailable: true,
+        vehicleType: 'car',
+        address: {
+          street: '300 Courier Blvd',
+          city: 'San Francisco',
+          state: 'CA',
+          zipCode: '94102'
+        }
+      }
+    ];
+
+    const createdDeliveryBoys = await User.insertMany(deliveryBoys);
+    console.log('Delivery boys created');
 
     // Create restaurants
     const restaurants = [

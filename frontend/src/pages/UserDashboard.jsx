@@ -9,6 +9,7 @@ const statusColors = {
   confirmed: { bg: 'bg-blue-100', text: 'text-blue-700', badge: 'bg-blue-500' },
   preparing: { bg: 'bg-purple-100', text: 'text-purple-700', badge: 'bg-purple-500' },
   ready: { bg: 'bg-emerald-100', text: 'text-emerald-700', badge: 'bg-emerald-500' },
+  assigned: { bg: 'bg-cyan-100', text: 'text-cyan-700', badge: 'bg-cyan-500' },
   picked_up: { bg: 'bg-cyan-100', text: 'text-cyan-700', badge: 'bg-cyan-500' },
   on_the_way: { bg: 'bg-yellow-100', text: 'text-yellow-700', badge: 'bg-yellow-500' },
   delivered: { bg: 'bg-green-100', text: 'text-green-700', badge: 'bg-green-500' },
@@ -16,9 +17,15 @@ const statusColors = {
 };
 
 const statusLabels = {
-  placed: 'Order Placed', confirmed: 'Order Confirmed', preparing: 'Preparing Food',
-  ready: 'Ready for Pickup', picked_up: 'Picked Up', on_the_way: 'On the Way',
-  delivered: 'Delivered Successfully', cancelled: 'Order Cancelled'
+  placed: 'Order Placed', 
+  confirmed: 'Order Confirmed', 
+  preparing: 'Preparing Food',
+  ready: 'Ready for Delivery', 
+  assigned: 'Delivery Assigned',
+  picked_up: 'Order Picked Up', 
+  on_the_way: 'On the Way',
+  delivered: 'Delivered Successfully', 
+  cancelled: 'Order Cancelled'
 };
 
 const UserDashboard = () => {

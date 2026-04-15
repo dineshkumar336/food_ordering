@@ -44,5 +44,8 @@ export const acceptDeliveryOrder = (id) => API.post(`/delivery/accept/${id}`);
 export const getMyDeliveries = (params) => API.get('/delivery/my', { params });
 export const updateDeliveryStatus = (id, status) => API.put(`/delivery/${id}/status`, { status });
 export const toggleAvailability = () => API.put('/delivery/toggle-availability');
+export const getAvailableDeliveryBoys = () => API.get('/delivery/available-boys');
+export const assignDeliveryBoy = (orderId, deliveryBoyId) => API.post(`/delivery/assign/${orderId}`, { deliveryBoyId });
+export const confirmOrderPickup = (id) => API.post(`/delivery/pickup/${id}`);
 
 export default API;

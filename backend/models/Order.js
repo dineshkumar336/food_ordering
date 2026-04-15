@@ -17,7 +17,7 @@ const orderSchema = new mongoose.Schema({
   grandTotal: { type: Number, required: true },
   status: {
     type: String,
-    enum: ['placed', 'confirmed', 'preparing', 'ready', 'picked_up', 'on_the_way', 'delivered', 'cancelled'],
+    enum: ['placed', 'confirmed', 'preparing', 'ready', 'assigned', 'picked_up', 'on_the_way', 'delivered', 'cancelled'],
     default: 'placed'
   },
   deliveryAddress: {
