@@ -107,5 +107,4 @@ backend/
   index.js  seed.js  clearAll.js
 frontend/
   src/           components, context, pages, services
-SECURITY_REVIEW.md
 ```
