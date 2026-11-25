@@ -109,11 +109,3 @@ frontend/
   src/           components, context, pages, services
 SECURITY_REVIEW.md
 ```
-
-## Known limitations
-
-- Open findings from the review: file upload checks (#6), order validation (#7), restaurant list filters (#11) and dependency updates (#13). See [SECURITY_REVIEW.md](SECURITY_REVIEW.md).
-- The login token is kept in `localStorage`. An HttpOnly cookie would need CSRF protection as well.
-- Authenticator secrets are stored unencrypted, and there are no backup codes.
-- Rate limits are stored in memory. With several server instances, use a shared store such as Redis.
-- There is no e-mail recovery. A customer without two-step sign-in cannot reset a forgotten password on their own.
