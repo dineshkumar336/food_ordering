@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { User, Store, Bike, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { User, Store, Lock, Eye, EyeOff, ArrowRight, ShieldCheck } from 'lucide-react';
 
 const Login = () => {
   const [role, setRole] = useState('user');
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ username: '', password: '', totpCode: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,19 +17,16 @@ const Login = () => {
     setError('');
     setLoading(true);
     try {
-      const success = await login({ ...formData, role });
-      if (success) {
-        navigate(role === 'restaurant' ? '/restaurant/dashboard' : '/dashboard');
+      const code = formData.totpCode.trim();
+      const result = await login({ username: formData.username, password: formData.password, role, ...(code ? { totpCode: code } : {}) });
+      if (result.ok) {
+        // Restaurant owners without two-step sign-in go straight to its setup page
+        navigate(result.scope === 'mfa_setup' ? '/mfa-setup' : role === 'restaurant' ? '/restaurant/dashboard' : '/dashboard');
       } else {
         setError('Invalid credentials');
       }
     } catch (err) {
-      if (err.response?.data?.notVerified) {
-        localStorage.setItem('unverified_email', err.response.data.email || formData.email);
-        navigate('/verify-email', { state: { email: err.response.data.email || formData.email } });
-      } else {
-        setError(err.response?.data?.message || 'Failed to login');
-      }
+      setError(err.response?.data?.message || 'Failed to login');
     } finally {
       setLoading(false);
     }
@@ -87,18 +84,20 @@ const Login = () => {
             )}
 
             <div>
-              <label className="block text-sm font-bold text-stone-700 mb-2">Email Address</label>
+              <label className="block text-sm font-bold text-stone-700 mb-2">Username</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400">
-                  <Mail size={18} />
+                  <User size={18} />
                 </div>
                 <input
-                  type="email"
+                  type="text"
                   required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  autoComplete="username"
+                  maxLength={32}
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   className="block w-full pl-11 pr-4 py-3.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium"
-                  placeholder="you@example.com"
+                  placeholder="Your username"
                 />
               </div>
             </div>
@@ -106,7 +105,7 @@ const Login = () => {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="block text-sm font-bold text-stone-700">Password</label>
-                <Link to="/forgot-password" className="text-sm font-semibold text-orange-600 hover:text-orange-500">
+                <Link to="/recover" className="text-sm font-semibold text-orange-600 hover:text-orange-500">
                   Forgot password?
                 </Link>
               </div>
@@ -129,6 +128,27 @@ const Login = () => {
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-stone-700 mb-2">
+                Authenticator code <span className="font-normal text-stone-400">(if two-step sign-in is on)</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400">
+                  <ShieldCheck size={18} />
+                </div>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={8}
+                  value={formData.totpCode}
+                  onChange={(e) => setFormData({ ...formData, totpCode: e.target.value })}
+                  className="block w-full pl-11 pr-4 py-3.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium tracking-widest"
+                  placeholder="6-digit code"
+                />
               </div>
             </div>
 

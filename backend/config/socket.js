@@ -1,6 +1,5 @@
 const { Server } = require('socket.io');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { userFromToken } = require('../utils/token');
 
 let io;
 
@@ -18,10 +17,10 @@ const initSocket = (server) => {
       const token = socket.handshake.auth.token;
       if (!token) return next(new Error('Authentication error'));
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(decoded.userId).select('-password');
-      
-      if (!user) return next(new Error('User not found'));
+      // same checks as the HTTP API: valid signature, active account, token not revoked
+      const result = await userFromToken(token);
+      if (!result || result.scope !== 'full') return next(new Error('Authentication error'));
+      const user = result.user;
       
       socket.user = user;
       next();
@@ -31,7 +30,7 @@ const initSocket = (server) => {
   });
 
   io.on('connection', (socket) => {
-    console.log(`User connected: ${socket.user.name} (${socket.id})`);
+    console.log(`Socket connected: user ${socket.user._id} (${socket.id})`);
 
     // Join room based on user ID
     socket.join(`user_${socket.user._id}`);

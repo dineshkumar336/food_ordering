@@ -1,7 +1,12 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 require('dotenv').config();
 
+// Fix #14: no shared default password. Seed accounts get a random password (printed once at the end),
+// or the value of SEED_PASSWORD if you set it. Use the seed only on development databases.
+const SEED_PASSWORD = process.env.SEED_PASSWORD || `${crypto.randomBytes(9).toString('base64url')}a1`;
+
+const { hashPassword } = require('./utils/password');
 const User = require('./models/User');
 const Restaurant = require('./models/Restaurant');
 const MenuItem = require('./models/MenuItem');
@@ -24,11 +29,12 @@ const seedData = async () => {
     await MenuItem.deleteMany({});
 
     // Create restaurant owners
+    const seedHash = await hashPassword(SEED_PASSWORD);
     const restaurantOwners = [
       {
         name: 'Delhi Pizza Palace',
-        email: 'delhipizzapalace@gmail.com',
-        password: await bcrypt.hash('000000', 10),
+        username: 'delhipizzapalace',
+        password: seedHash,
         phone: '+91-555-0101',
         role: 'restaurant',
         address: {
@@ -40,8 +46,8 @@ const seedData = async () => {
       },
       {
         name: 'Bombay Burger House',
-        email: 'bombayburgerhouse@gmail.com',
-        password: await bcrypt.hash('000000', 10),
+        username: 'bombayburgerhouse',
+        password: seedHash,
         phone: '+91-555-0102',
         role: 'restaurant',
         address: {
@@ -53,8 +59,8 @@ const seedData = async () => {
       },
       {
         name: 'Chennai Snack Shack',
-        email: 'chennaisnackshack@gmail.com',
-        password: await bcrypt.hash('000000', 10),
+        username: 'chennaisnackshack',
+        password: seedHash,
         phone: '+91-555-0103',
         role: 'restaurant',
         address: {
@@ -67,6 +73,8 @@ const seedData = async () => {
     ];
 
     const createdOwners = await User.insertMany(restaurantOwners);
+    console.log(`Seeded owner usernames: delhipizzapalace, bombayburgerhouse, chennaisnackshack`);
+    console.log(`Seeded owner accounts use this password: ${SEED_PASSWORD}  (each owner sets up two-step sign-in at first login)`);
     console.log('Restaurant owners created');
 
     // Create restaurants

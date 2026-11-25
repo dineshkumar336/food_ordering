@@ -12,14 +12,16 @@ import RestaurantDetail from './pages/RestaurantDetail';
 import Cart from './pages/Cart';
 import UserDashboard from './pages/UserDashboard';
 import RestaurantDashboard from './pages/RestaurantDashboard';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import VerifyEmail from './pages/VerifyEmail';
+import MfaSetup from './pages/MfaSetup';
+import Recover from './pages/Recover';
+import Security from './pages/Security';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { user, loading } = useAuth();
+  const { user, scope, loading } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full" /></div>;
   if (!user) return <Navigate to="/login" />;
+  // Restaurant owners must finish two-step sign-in setup before anything else
+  if (scope === 'mfa_setup') return <Navigate to="/mfa-setup" />;
   if (allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/" />;
   return children;
 };
@@ -37,9 +39,13 @@ const AppContent = () => {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password/:token" element={<ResetPassword />} />
+            <Route path="/recover" element={<Recover />} />
+            <Route path="/mfa-setup" element={<MfaSetup />} />
+            <Route path="/security" element={
+              <ProtectedRoute allowedRoles={['user', 'restaurant']}>
+                <Security />
+              </ProtectedRoute>
+            } />
             <Route path="/restaurants" element={<Restaurants />} />
             <Route path="/restaurants/:id" element={<RestaurantDetail cart={cart} setCart={setCart} />} />
             <Route path="/cart" element={

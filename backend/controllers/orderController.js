@@ -1,3 +1,5 @@
+const mongoose = require('mongoose');
+const audit = require('../utils/audit');
 const Order = require('../models/Order');
 const Restaurant = require('../models/Restaurant');
 const MenuItem = require('../models/MenuItem');
@@ -61,6 +63,8 @@ exports.createOrder = async (req, res) => {
   }
 };
 
+const idOf = (x) => String(x && x._id ? x._id : x);
+
 exports.getUserOrders = async (req, res) => {
   try {
     const orders = await Order.find({ user: req.user._id })
@@ -93,9 +97,26 @@ exports.getRestaurantOrders = async (req, res) => {
   }
 };
 
+// Fix #8: an order can only move forward through these steps. Finished orders stay finished.
+const ALLOWED_TRANSITIONS = {
+  placed: ['confirmed', 'cancelled'],
+  confirmed: ['preparing', 'cancelled'],
+  preparing: ['ready', 'cancelled'],
+  ready: ['delivered'],
+  delivered: [],
+  cancelled: [],
+};
+
 exports.updateOrderStatus = async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status } = req.body || {};
+    if (typeof status !== 'string' || !Object.prototype.hasOwnProperty.call(ALLOWED_TRANSITIONS, status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
     const order = await Order.findById(req.params.id);
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
@@ -107,12 +128,18 @@ exports.updateOrderStatus = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
+    if (!ALLOWED_TRANSITIONS[order.status].includes(status)) {
+      return res.status(400).json({ success: false, message: `An order that is ${order.status} cannot be changed to ${status}` });
+    }
 
+    const previousStatus = order.status;
     order.status = status;
-    if (status === 'delivered') {
+    // Cash on delivery is paid when the order is delivered. Online payments are never marked paid by this route.
+    if (status === 'delivered' && order.paymentMethod === 'cod') {
       order.paymentStatus = 'paid';
     }
     await order.save();
+    audit.record('order.status_change', { req, actor: req.user, target: order._id, detail: { from: previousStatus, to: status } });
 
     // Notify User
     emitToUser(order.user, 'status_updated', { orderId: order._id, status: order.status });
@@ -125,15 +152,30 @@ exports.updateOrderStatus = async (req, res) => {
 
 exports.getOrderById = async (req, res) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
     const order = await Order.findById(req.params.id)
-      .populate('restaurant', 'name image phone address')
+      .populate('restaurant', 'name image phone address owner')
       .populate('user', 'name phone');
 
-    if (!order) {
+    // Fix #1: only the customer who placed the order, or the restaurant it was placed with, may see it.
+    // Everyone else gets the same 404 as for an order that doesn't exist.
+    let allowed = false;
+    if (order) {
+      if (req.user.role === 'user') {
+        allowed = idOf(order.user) === String(req.user._id);
+      } else if (req.user.role === 'restaurant') {
+        allowed = !!order.restaurant && idOf(order.restaurant.owner) === String(req.user._id);
+      }
+    }
+    if (!order || !allowed) {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
 
-    res.json({ success: true, order });
+    const result = order.toObject();
+    if (result.restaurant) delete result.restaurant.owner;
+    res.json({ success: true, order: result });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error' });
   }

@@ -1,18 +1,18 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { User, Store, Bike, Mail, Lock, Eye, EyeOff, UserCircle, Phone, ArrowRight, Truck } from 'lucide-react';
+import { User, Store, Lock, Eye, EyeOff, UserCircle, Phone, ArrowRight, AtSign } from 'lucide-react';
 
 const Register = () => {
   const [role, setRole] = useState('user');
   const [formData, setFormData] = useState({
-    name: '', email: '', password: '', confirmPassword: '', phone: '',
-    restaurantName: '', vehicleType: 'bike'
+    name: '', username: '', password: '', confirmPassword: '', phone: '',
+    restaurantName: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const { register, login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -22,19 +22,27 @@ const Register = () => {
     if (formData.password !== formData.confirmPassword) {
       return setError('Passwords do not match');
     }
-    if (formData.password.length < 6) {
-      return setError('Password must be at least 6 characters');
+    // Same rules as the server (the server is the one that enforces them)
+    if (!/^[A-Za-z0-9_.-]{3,32}$/.test(formData.username)) {
+      return setError('Username must be 3 to 32 characters: letters, numbers, dot, dash or underscore');
+    }
+    if (formData.password.length < 8) {
+      return setError('Password must be at least 8 characters');
+    }
+    if (!/[A-Za-z]/.test(formData.password) || !/\d/.test(formData.password)) {
+      return setError('Password must contain at least one letter and one number');
     }
 
     setLoading(true);
     try {
-      const data = { ...formData, role };
-      if (role !== 'restaurant') delete data.restaurantName;
-      
+      const data = { name: formData.name, username: formData.username, password: formData.password, phone: formData.phone, role };
+      if (role === 'restaurant') data.restaurantName = formData.restaurantName;
+
       const response = await register(data);
       if (response && response.success) {
-        localStorage.setItem('unverified_email', response.email || formData.email);
-        navigate('/verify-email', { state: { email: response.email || formData.email } });
+        // No e-mail step: sign in right away. Restaurant owners continue to two-step sign-in setup.
+        const result = await login({ username: formData.username, password: formData.password, role });
+        navigate(result.scope === 'mfa_setup' ? '/mfa-setup' : role === 'restaurant' ? '/restaurant/dashboard' : '/dashboard');
       } else {
         setError('Registration failed');
       }
@@ -115,10 +123,10 @@ const Register = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-stone-700 mb-2">Email Address</label>
+              <label className="block text-sm font-bold text-stone-700 mb-2">Username</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400"><Mail size={18} /></div>
-                <input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="block w-full pl-11 pr-4 py-3.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium" placeholder="you@example.com" />
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400"><AtSign size={18} /></div>
+                <input type="text" required autoComplete="username" maxLength={32} value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} className="block w-full pl-11 pr-4 py-3.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium" placeholder="3 to 32 characters, no spaces" />
               </div>
             </div>
 
@@ -134,7 +142,7 @@ const Register = () => {
               <label className="block text-sm font-bold text-stone-700 mb-2">Password</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-400"><Lock size={18} /></div>
-                <input type={showPassword ? 'text' : 'password'} required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="block w-full pl-11 pr-12 py-3.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium" placeholder="Min. 6 characters" />
+                <input type={showPassword ? 'text' : 'password'} required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="block w-full pl-11 pr-12 py-3.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium" placeholder="Min. 8 characters, with a letter and a number" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-stone-400 hover:text-orange-500 transition-colors focus:outline-none">
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>

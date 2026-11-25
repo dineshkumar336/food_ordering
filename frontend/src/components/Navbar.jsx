@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Menu, X, UtensilsCrossed, ShoppingCart, LogOut, LayoutDashboard } from 'lucide-react';
+import { Menu, X, UtensilsCrossed, ShoppingCart, LogOut, LayoutDashboard, ShieldCheck } from 'lucide-react';
 
 const Navbar = ({ cartCount = 0 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, scope, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -67,9 +67,20 @@ const Navbar = ({ cartCount = 0 }) => {
             
             {user ? (
               <>
-                <Link to={getDashboardLink()} className="text-sm font-bold transition-colors flex items-center gap-1.5 text-stone-600 hover:text-orange-600">
-                  <LayoutDashboard size={18} /> Dashboard
-                </Link>
+                {scope === 'mfa_setup' ? (
+                  <Link to="/mfa-setup" className="text-sm font-bold transition-colors flex items-center gap-1.5 text-orange-600 hover:text-orange-700">
+                    <ShieldCheck size={18} /> Finish security setup
+                  </Link>
+                ) : (
+                  <>
+                    <Link to={getDashboardLink()} className="text-sm font-bold transition-colors flex items-center gap-1.5 text-stone-600 hover:text-orange-600">
+                      <LayoutDashboard size={18} /> Dashboard
+                    </Link>
+                    <Link to="/security" className="text-sm font-bold transition-colors flex items-center gap-1.5 text-stone-600 hover:text-orange-600">
+                      <ShieldCheck size={18} /> Security
+                    </Link>
+                  </>
+                )}
                 {user.role === 'user' && (
                   <Link to="/cart" className="relative transition-colors text-stone-600 hover:text-orange-600">
                     <ShoppingCart size={22} />
@@ -115,7 +126,14 @@ const Navbar = ({ cartCount = 0 }) => {
               ))}
               {user ? (
                 <>
-                  <Link to={getDashboardLink()} onClick={() => setIsOpen(false)} className={`px-4 py-3 rounded-xl font-semibold transition-colors ${location.pathname.includes('dashboard') ? 'bg-orange-50 text-orange-600' : 'text-stone-700 hover:bg-stone-50'}`}>Dashboard</Link>
+                  {scope === 'mfa_setup' ? (
+                    <Link to="/mfa-setup" onClick={() => setIsOpen(false)} className="px-4 py-3 rounded-xl font-semibold text-orange-600 hover:bg-orange-50">Finish security setup</Link>
+                  ) : (
+                    <>
+                      <Link to={getDashboardLink()} onClick={() => setIsOpen(false)} className={`px-4 py-3 rounded-xl font-semibold transition-colors ${location.pathname.includes('dashboard') ? 'bg-orange-50 text-orange-600' : 'text-stone-700 hover:bg-stone-50'}`}>Dashboard</Link>
+                      <Link to="/security" onClick={() => setIsOpen(false)} className={`px-4 py-3 rounded-xl font-semibold transition-colors ${location.pathname === '/security' ? 'bg-orange-50 text-orange-600' : 'text-stone-700 hover:bg-stone-50'}`}>Security</Link>
+                    </>
+                  )}
                   {user.role === 'user' && (
                     <Link to="/cart" onClick={() => setIsOpen(false)} className={`px-4 py-3 rounded-xl font-semibold transition-colors flex items-center gap-2 ${location.pathname === '/cart' ? 'bg-orange-50 text-orange-600' : 'text-stone-700 hover:bg-stone-50'}`}>
                       Cart <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full text-xs">{cartCount}</span>

@@ -17,6 +17,14 @@ API.interceptors.request.use((config) => {
 export const registerUser = (data) => API.post('/auth/register', data);
 export const loginUser = (data) => API.post('/auth/login', data);
 export const getMe = () => API.get('/auth/me');
+export const recoverAccount = (data) => API.post('/auth/recover', data);
+export const mfaSetup = () => API.post('/auth/mfa/setup');
+export const mfaEnable = (data) => API.post('/auth/mfa/enable', data);
+export const mfaDisable = (data) => API.post('/auth/mfa/disable', data);
+export const changePassword = (data) => API.put('/auth/password', data);
+export const getActivity = () => API.get('/auth/activity');
+// Revokes the token on the server. The token is passed in explicitly because the caller clears localStorage right after.
+export const logoutUser = (token) => API.post('/auth/logout', null, { headers: { Authorization: `Bearer ${token}` } });
 
 // Restaurants
 export const getAllRestaurants = (params) => API.get('/restaurants', { params });

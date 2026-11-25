@@ -8,13 +8,17 @@ exports.addMenuItem = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Restaurant not found' });
     }
 
-    const itemData = { ...req.body };
-    if (itemData.isVeg === 'true') itemData.isVeg = true;
-    if (itemData.isVeg === 'false') itemData.isVeg = false;
+    // Fix #3: only these fields are taken from the request. `restaurant`, `rating`, `image` etc. can't be set by the client.
+    const { name, description, price, category, isVeg, isAvailable, preparationTime, tags } = req.body;
+    const toBool = (v) => (v === 'true' || v === true ? true : v === 'false' || v === false ? false : undefined);
+    const itemData = { name, description, price, category, preparationTime, tags };
+    if (toBool(isVeg) !== undefined) itemData.isVeg = toBool(isVeg);
+    if (toBool(isAvailable) !== undefined) itemData.isAvailable = toBool(isAvailable);
+    Object.keys(itemData).forEach((k) => itemData[k] === undefined && delete itemData[k]);
 
     const item = new MenuItem({
-      restaurant: restaurant._id,
-      ...itemData
+      ...itemData,
+      restaurant: restaurant._id,          // always the caller's own restaurant
     });
 
     if (req.file) {

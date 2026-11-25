@@ -1,3 +1,6 @@
 node_modules
 .env
 
+# user uploads are runtime data, not source code
+uploads/*
+!uploads/.gitkeep

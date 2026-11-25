@@ -1,9 +1,13 @@
 const mongoose = require('mongoose');
 
+// Sign-in works like the IAM project: username + password (+ authenticator code). No e-mail is needed.
 const userSchema = new mongoose.Schema({
+  username: {
+    type: String, required: true, unique: true, lowercase: true, trim: true,
+    minlength: 3, maxlength: 32, match: /^[a-z0-9_.-]+$/,
+  },
   name: { type: String, required: true, trim: true },
-  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-  password: { type: String, required: true },
+  password: { type: String, required: true, select: false },        // Argon2id hash
   phone: { type: String, default: '' },
   role: { type: String, enum: ['user', 'restaurant'], required: true },
   avatar: { type: String, default: '' },
@@ -19,12 +23,16 @@ const userSchema = new mongoose.Schema({
   },
   // Restaurant specific
   restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant' },
-  isVerified: { type: Boolean, default: false },
+
   isActive: { type: Boolean, default: true },
-  resetPasswordToken: String,
-  resetPasswordExpire: Date,
-  verifyEmailOtp: String,
-  verifyEmailOtpExpire: Date
+  // Two-step sign-in (TOTP). The secret stays "pending" until a valid code proves the user has it.
+  mfaEnabled: { type: Boolean, default: false },
+  totpSecret: { type: String, select: false },
+  // Lockout counters and token revocation
+  failedAttempts: { type: Number, default: 0 },
+  lockoutUntil: { type: Date },
+  tokenVersion: { type: Number, default: 0 },
+  lastLoginAt: { type: Date },
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);
