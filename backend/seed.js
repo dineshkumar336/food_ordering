@@ -2,8 +2,6 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 require('dotenv').config();
 
-// Fix #14: no shared default password. Seed accounts get a random password (printed once at the end),
-// or the value of SEED_PASSWORD if you set it. Use the seed only on development databases.
 const SEED_PASSWORD = process.env.SEED_PASSWORD || `${crypto.randomBytes(9).toString('base64url')}a1`;
 
 const { hashPassword } = require('./utils/password');
